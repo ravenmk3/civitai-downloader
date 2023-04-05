@@ -121,3 +121,14 @@ class CivitaiDownloader:
             self._downloader.download(real_url, file_path)
 
         logging.info('[%d:%s] download finished.', model_id, name)
+
+    def download_batch(self, type: str = 'LORA', max_page: int = 10):
+        for p in range(1, max_page + 1):
+            logging.info('fetching list - type:%s, page:%d', type, p)
+            resp = self._client.get_models(p, types=[type], sort='Highest Rated')
+            for item in resp['items']:
+                model_id = item['id']
+                self.download(model_id)
+            total_page = resp['metadata']['totalPages']
+            if p >= total_page:
+                break

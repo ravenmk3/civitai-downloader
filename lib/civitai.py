@@ -37,7 +37,7 @@ class CivitaiClient():
         resp.raise_for_status()
         return resp.json()
 
-    def get_models(self, page: int = 1, types: str = None, sort: str = None) -> dict:
+    def get_models(self, page: int = 1, types: list[str] = None, sort: str = None) -> dict:
         """
         :param page: page number
         :param types: enums (Checkpoint, TextualInversion, Hypernetwork, AestheticGradient, LORA, Controlnet, Poses)
