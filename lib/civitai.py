@@ -56,7 +56,15 @@ class CivitaiClient():
         path = f'models/{model_id}'
         return self._invoke_get(path)
 
-    def get_image_data(self, url: str) -> bytes:
+    def get_redirected_url(self, url: str) -> str:
+        resp = self._session.get(url, allow_redirects=False)
+        resp.raise_for_status()
+        code = resp.status_code
+        if code < 300 and code >= 400:
+            raise RuntimeError(f'invalid status code: {code}')
+        return resp.headers['Location']
+
+    def get_file_data(self, url: str) -> bytes:
         resp = self._session.get(url)
         resp.raise_for_status()
         return resp.content
