@@ -17,7 +17,7 @@ API_BASE_URI = 'https://civitai.com/api/v1/'
 class CivitaiClient():
 
     def __init__(self, proxy: str = None):
-        self.base_uri = API_BASE_URI
+        self._base_uri = API_BASE_URI
         self._session = self._init_session(proxy)
 
     def _init_session(self, proxy: str = None):
@@ -32,7 +32,7 @@ class CivitaiClient():
         return session
 
     def _invoke_get(self, path: str, params: dict[str, any] = None) -> dict:
-        url = f'{self.base_uri}{path}'
+        url = f'{self._base_uri}{path}'
         resp = self._session.get(url, params=params)
         resp.raise_for_status()
         return resp.json()
