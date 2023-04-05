@@ -1,0 +1,6 @@
+# -i https://mirror.baidu.com/pypi/simple
+
+requests
+click
+tqdm
+pillow
