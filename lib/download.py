@@ -6,7 +6,7 @@ from abc import abstractmethod, ABCMeta
 
 from lib.aria2 import Aria2RpcClient
 from lib.civitai import CivitaiClient
-from lib.util import safe_filename, save_yaml, md5_hex
+from lib.util import safe_filename, save_yaml
 
 
 BLACK_IDS = [17748]
@@ -47,6 +47,14 @@ class Aria2Downloader(FileDownloader):
             self._aria2.remove_download_result(task_id)
 
 
+def image_url_to_filename(url: str) -> str:
+    basename = os.path.basename(url)
+    name, ext = os.path.splitext(basename)
+    if ext:
+        return basename
+    return name + '.jpg'
+
+
 class CivitaiDownloader:
 
     def __init__(self, storage_dir: str = 'downloads', proxy: str = None):
@@ -76,34 +84,43 @@ class CivitaiDownloader:
         else:
             save_yaml(info_file_path, info)
 
-        last_ver = versions[0]
-        ver_id = last_ver['id']
-        ver_name = last_ver['name']
+        for version in versions:
+            try:
+                self._download_version(model_id, name, model_dir, version)
+            except Exception as e:
+                self._logger.error(e, exc_info=True)
+
+        self._logger.info('[%d:%s] download finished.', model_id, name)
+
+    def _download_version(self, model_id: int, model_name: str,
+                          model_dir: str, version: dict):
+        ver_id = version['id']
+        ver_name = version['name']
         safe_ver_name = safe_filename(ver_name)
         self._logger.info('[%d:%s] downloading version: %s (%s)',
-                          model_id, name, ver_name, ver_id)
+                          model_id, model_name, ver_name, ver_id)
 
-        images = last_ver['images']
+        images = version['images']
         img_count = len(images)
         for i, img in enumerate(images):
             img_num = i + 1
             img_url = img['url']
-            img_url_hash = md5_hex(img_url)
-            img_file = f'image_{model_id}_{ver_id}_{img_url_hash}.jpg'
+            img_filename = image_url_to_filename(img_url)
+            img_file = f'image_{model_id}_{ver_id}_{img_filename}'
             img_path = os.path.join(model_dir, img_file)
 
             if os.path.isfile(img_path):
                 self._logger.info('[%d:%s] ignore existing image (%d/%d): %s',
-                                  model_id, name, img_num, img_count, img_url)
+                                  model_id, model_name, img_num, img_count, img_url)
                 continue
 
             self._logger.info('[%d:%s] downloading image (%d/%d): %s',
-                              model_id, name, img_num, img_count, img_url)
+                              model_id, model_name, img_num, img_count, img_url)
             img_data = self._client.get_file_data(img_url)
             with open(img_path, 'wb+') as fp:
                 fp.write(img_data)
 
-        files = last_ver['files']
+        files = version['files']
         file_count = len(files)
         for i, file in enumerate(files):
             file_num = i + 1
@@ -115,15 +132,13 @@ class CivitaiDownloader:
 
             if os.path.isfile(file_path):
                 self._logger.info('[%d:%s] ignore existing file (%d/%d): %s',
-                                  model_id, name, file_num, file_count, file_name)
+                                  model_id, model_name, file_num, file_count, file_name)
                 continue
 
             self._logger.info('[%d:%s] downloading file (%d/%d): %s, %s',
-                              model_id, name, file_num, file_count, file_name, file_url)
+                              model_id, model_name, file_num, file_count, file_name, file_url)
             real_url = self._client.get_redirected_url(file_url)
             self._downloader.download(real_url, file_path)
-
-        self._logger.info('[%d:%s] download finished.', model_id, name)
 
     def download_batch(self, type: str = 'LORA', max_page: int = 10):
         for p in range(1, max_page + 1):
@@ -134,7 +149,10 @@ class CivitaiDownloader:
                 if model_id in BLACK_IDS:
                     self._logger.error('model id blocked: %d', model_id)
                     continue
-                self.download(model_id)
+                try:
+                    self.download(model_id)
+                except Exception as e:
+                    self._logger.error(e, exc_info=True)
             total_page = resp['metadata']['totalPages']
             if p >= total_page:
                 break
