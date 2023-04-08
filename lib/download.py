@@ -26,13 +26,13 @@ class CivitaiDownloader:
         self._downloader = Aria2Downloader(os.path.join(storage_dir, 'temp'))
 
     def download(self, model_id: int):
-        self._logger.info('[M:%d] fetching model details', model_id)
+        self._logger.info('[M:%d] Fetching model details', model_id)
 
         info = self._client.get_model(model_id)
         name = info['name']
         model_type = info['type']
         versions = info['modelVersions']
-        self._logger.info('[M:%d] downloading model: %s (type: %s, versions: %d)',
+        self._logger.info('[M:%d] Downloading model: %s (Type: %s, Versions: %d)',
                           model_id, name, model_type, len(versions))
 
         safe_name = safe_filename(name)
@@ -43,7 +43,7 @@ class CivitaiDownloader:
         info_file_name = f'model_{model_id}_{safe_name}.yaml'
         info_file_path = os.path.join(model_dir, info_file_name)
         if os.path.isfile(info_file_path):
-            self._logger.info('[M:%d] skip existing data file: %s',
+            self._logger.info('[M:%d] Skip existing: %s',
                               model_id, info_file_name)
         else:
             save_yaml(info_file_path, info)
@@ -54,13 +54,13 @@ class CivitaiDownloader:
             except Exception as e:
                 self._logger.error(e, exc_info=True)
 
-        self._logger.info('[M:%d] download finished: %s', model_id, name)
+        self._logger.info('[M:%d] Download finished: %s', model_id, name)
 
     def _download_version(self, model_id: int, model_name: str,
                           model_dir: str, version: dict):
         ver_id = version['id']
         ver_name = version['name']
-        self._logger.info('[M:%d,V:%d] downloading version: %s (%s)',
+        self._logger.info('[M:%d,V:%d] Downloading version: %s (%s)',
                           model_id, ver_id, ver_name, ver_id)
 
         images = version['images']
@@ -73,11 +73,11 @@ class CivitaiDownloader:
             img_path = os.path.join(model_dir, img_file)
 
             if os.path.isfile(img_path):
-                self._logger.info('[M:%d,V:%d,I:%d/%d] skip existing image: %s',
+                self._logger.info('[M:%d,V:%d,I:(%d/%d)] Skip existing: %s',
                                   model_id, ver_id, img_num, img_count, img_url)
                 continue
 
-            self._logger.info('[M:%d,V:%d,I:%d/%d] downloading image: %s',
+            self._logger.info('[M:%d,V:%d,I:(%d/%d)] Downloading image: %s',
                               model_id, ver_id, img_num, img_count, img_url)
             img_data = self._client.get_file_data(img_url)
             with open(img_path, 'wb+') as fp:
@@ -94,11 +94,11 @@ class CivitaiDownloader:
             file_path = os.path.join(model_dir, final_name)
 
             if os.path.isfile(file_path):
-                self._logger.info('[M:%d,V:%d,F:%d(%d/%d)] skip existing file: %s',
+                self._logger.info('[M:%d,V:%d,F:%d(%d/%d)] Skip existing: %s',
                                   model_id, ver_id, file_id, file_num, file_count, file_name)
                 continue
 
-            self._logger.info('[M:%d,V:%d,F:%d(%d/%d)] downloading file: %s',
+            self._logger.info('[M:%d,V:%d,F:%d(%d/%d)] Downloading file: %s',
                               model_id, ver_id, file_id, file_num, file_count, file_name)
             real_url = self._client.get_redirected_url(file_url)
             self._downloader.download(real_url, file_path)
