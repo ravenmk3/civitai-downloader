@@ -25,7 +25,7 @@ class CivitaiDownloader:
         self._client = CivitaiClient(proxy)
         self._downloader = Aria2Downloader(os.path.join(storage_dir, 'temp'))
 
-    def download(self, model_id: int):
+    def download(self, model_id: int, latest_only: bool = False):
         self._logger.info('[M:%d] Fetching model details', model_id)
 
         info = self._client.get_model(model_id)
@@ -48,7 +48,10 @@ class CivitaiDownloader:
         else:
             save_yaml(info_file_path, info)
 
-        for version in versions:
+        for i, version in enumerate(versions):
+            if latest_only and i > 0:
+                self._logger.info('[M:%d] Skip remaining version(s)', model_id)
+                break
             try:
                 self._download_version(model_id, name, model_dir, version)
             except Exception as e:
@@ -103,8 +106,9 @@ class CivitaiDownloader:
             real_url = self._client.get_redirected_url(file_url)
             self._downloader.download(real_url, file_path)
 
-    def download_batch(self, type: str = 'LORA', max_page: int = 10):
-        for p in range(1, max_page + 1):
+    def download_batch(self, type: str = 'LORA', min_page: int = 1,
+                       max_page: int = 10, latest_only: bool = False):
+        for p in range(min_page, max_page + 1):
             self._logger.info('fetching list - type:%s, page:%d', type, p)
             resp = self._client.get_models(p, types=[type], sort='Highest Rated')
             for item in resp['items']:
@@ -113,7 +117,7 @@ class CivitaiDownloader:
                     self._logger.error('model id blocked: %d', model_id)
                     continue
                 try:
-                    self.download(model_id)
+                    self.download(model_id, latest_only)
                 except Exception as e:
                     self._logger.error(e, exc_info=True)
             total_page = resp['metadata']['totalPages']

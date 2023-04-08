@@ -16,19 +16,23 @@ def cli():
 @click.option('--dir', required=True)
 @click.option('--proxy', default=DEFAULT_PROXY, show_default=True)
 @click.option('--id', type=int, required=True)
-def download(dir: str, proxy: str, id: int):
+@click.option('--latest', type=bool, default=False, required=False)
+def download(dir: str, proxy: str, id: int, latest: bool):
     dl = CivitaiDownloader(storage_dir=dir, proxy=proxy)
-    dl.download(id)
+    dl.download(id, latest)
 
 
 @cli.command()
 @click.option('--dir', required=True)
 @click.option('--proxy', default=DEFAULT_PROXY, show_default=True)
 @click.option('--type', default='LORA', show_default=True)
+@click.option('--min-page', default=1, show_default=True)
 @click.option('--max-page', default=10, show_default=True)
-def download_batch(dir: str, proxy: str, type: str, max_page: int):
+@click.option('--latest', type=bool, default=False, required=False)
+def download_batch(dir: str, proxy: str, type: str,
+                   min_page: int, max_page: int, latest: bool):
     dl = CivitaiDownloader(storage_dir=dir, proxy=proxy)
-    dl.download_batch(type, max_page)
+    dl.download_batch(type, min_page, max_page, latest)
 
 
 if __name__ == '__main__':
