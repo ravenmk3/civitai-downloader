@@ -1,50 +1,12 @@
 import logging
 import os
-import shutil
-import time
-from abc import abstractmethod, ABCMeta
 
-from lib.aria2 import Aria2RpcClient
 from lib.civitai import CivitaiClient
+from lib.filedl import Aria2Downloader
 from lib.util import safe_filename, save_yaml
 
 
 BLACK_IDS = [17748]
-
-
-class FileDownloader(metaclass=ABCMeta):
-
-    @abstractmethod
-    def download(self, url: str, filename: str):
-        pass
-
-
-class Aria2Downloader(FileDownloader):
-
-    def __init__(self, temp_dir: str, token: str = None):
-        self._temp_dir = temp_dir
-        self._aria2 = Aria2RpcClient(token=token)
-
-    def download(self, url: str, filename: str):
-        tmp_filename = os.path.basename(filename)
-        opts = {
-            'dir': self._temp_dir,
-            'out': tmp_filename
-        }
-        temp_path = os.path.join(self._temp_dir, tmp_filename)
-        task_id = self._aria2.add_uri([url], opts)
-        task_status = None
-        task_active = True
-        while task_active:
-            time.sleep(5)
-            state = self._aria2.tell_status(task_id)
-            task_status = state['status']
-            task_active = (task_status == 'active')
-
-        completed = (task_status == 'complete')
-        if completed:
-            shutil.move(temp_path, filename)
-            self._aria2.remove_download_result(task_id)
 
 
 def image_url_to_filename(url: str) -> str:
