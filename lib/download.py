@@ -116,10 +116,12 @@ class CivitaiDownloader:
         file_count = len(files)
         filtered = filter_version_files(files)
         filtered_count = len(filtered)
-        if file_count > filtered_count:
-            self._logger.warning('[M:%d,V:%d] Dropped PickleTensor models',
-                                 model_id, ver_id)
-        files = filtered
+        dropped = file_count - filtered_count
+        if dropped > 0:
+            files = filtered
+            file_count = filtered_count
+            self._logger.warning('[M:%d,V:%d] Dropped PickleTensor models: %d',
+                                 model_id, ver_id, dropped)
 
         for i, file in enumerate(files):
             file_num = i + 1
