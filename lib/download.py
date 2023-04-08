@@ -17,6 +17,27 @@ def image_url_to_filename(url: str) -> str:
     return name + '.jpg'
 
 
+def filter_version_files(files: list[dict]) -> list[dict]:
+    # 当一个版本中类型为 Model 的文件多于一个时
+    # 排除掉非 SafeTensor 类型的 Model 文件
+    num_models = 0
+    filtered = []
+
+    for file in files:
+        type = file['type'].lower()
+        fmt = file['metadata']['format'].lower()
+        if type == 'model':
+            num_models += 1
+            if fmt == 'pickletensor':
+                continue
+        filtered.append(file)
+
+    if num_models > 1:
+        return filtered
+    else:
+        return files
+
+
 class CivitaiDownloader:
 
     def __init__(self, storage_dir: str = 'downloads', proxy: str = None):
@@ -93,6 +114,13 @@ class CivitaiDownloader:
 
         files = version['files']
         file_count = len(files)
+        filtered = filter_version_files(files)
+        filtered_count = len(filtered)
+        if file_count > filtered_count:
+            self._logger.warning('[M:%d,V:%d] Dropped PickleTensor models',
+                                 model_id, ver_id)
+        files = filtered
+
         for i, file in enumerate(files):
             file_num = i + 1
             file_id = file['id']
