@@ -1,5 +1,8 @@
 import logging
 import os
+import sys
+
+from tqdm import tqdm
 
 from lib.civitai import CivitaiClient
 from lib.filedl import Aria2Downloader
@@ -26,7 +29,7 @@ def filter_version_files(files: list[dict]) -> list[dict]:
     for file in files:
         type = file['type'].lower()
         fmt = file['metadata']['format'].lower()
-        if type == 'model':
+        if type in ['model', 'prunedmodel', 'pruned model']:
             num_models += 1
             if fmt == 'pickletensor':
                 continue
@@ -69,9 +72,11 @@ class CivitaiDownloader:
         else:
             save_yaml(info_file_path, info)
 
+        num_versions = len(versions)
         for i, version in enumerate(versions):
             if latest_only and i > 0:
-                self._logger.info('[M:%d] Skip remaining version(s)', model_id)
+                skipped = num_versions - 1
+                self._logger.info('[M:%d] Skip remaining version(s): %d', model_id, skipped)
                 break
             try:
                 self._download_version(model_id, model_dir, version, data_only)
@@ -89,7 +94,11 @@ class CivitaiDownloader:
 
         images = version['images']
         img_count = len(images)
-        for i, img in enumerate(images):
+        img_skipped = 0
+        img_desc = '[M:{0},V:{1}] Downloading images'.format(model_id, ver_id)
+        progress = tqdm(images, file=sys.stdout, desc=img_desc)
+
+        for i, img in enumerate(progress):
             img_num = i + 1
             img_url = img['url']
             img_filename = image_url_to_filename(img_url)
@@ -97,15 +106,16 @@ class CivitaiDownloader:
             img_path = os.path.join(model_dir, img_file)
 
             if os.path.isfile(img_path):
-                self._logger.info('[M:%d,V:%d,I:(%d/%d)] Skip existing: %s',
-                                  model_id, ver_id, img_num, img_count, img_url)
+                img_skipped += 1
                 continue
 
-            self._logger.info('[M:%d,V:%d,I:(%d/%d)] Downloading image: %s',
-                              model_id, ver_id, img_num, img_count, img_url)
             img_data = self._client.get_file_data(img_url)
             with open(img_path, 'wb+') as fp:
                 fp.write(img_data)
+
+        if img_skipped > 0:
+            self._logger.info('[M:%d,V:%d] Images skipped: %d',
+                              model_id, ver_id, img_skipped)
 
         if data_only:
             self._logger.info('[M:%d,V:%d] Data only, skip file download',

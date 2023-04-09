@@ -29,9 +29,9 @@ class Aria2Downloader(FileDownloader):
             f'--out={temp_name}',
             '--max-tries=10',
             '--split=5',
-            '--lowest-speed-limit=1K',
+            '--lowest-speed-limit=0',
             '--user-agent=CivitaiLink:Automatic1111',
-            '--file-allocation=falloc',
+            '--file-allocation=none',
             f'{url}',
         ]
         proc = subprocess.Popen(args, shell=False,
