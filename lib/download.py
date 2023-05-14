@@ -47,7 +47,7 @@ class CivitaiDownloader:
         self._logger = logging.getLogger(self.__class__.__name__)
         self._storage_dir = storage_dir
         self._client = CivitaiClient(proxy)
-        self._downloader = Aria2Downloader(os.path.join(storage_dir, 'temp'))
+        self._downloader = Aria2Downloader(os.path.join(storage_dir, '@temp'))
 
     def download(self, model_id: int, latest_only: bool = False, data_only: bool = False):
         self._logger.info('[M:%d] Fetching model details', model_id)
